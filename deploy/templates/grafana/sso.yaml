@@ -22,3 +22,5 @@ spec:
     fullScopeAllowed: false
     redirectUris:
       - {{ include "ctron-drogue.ingress.url" (dict "root" . "prefix" "grafana" "ingress" .Values.grafana.ingress ) }}/login/generic_oauth
+    rootUrl: ''
+    serviceAccountsEnabled: false
