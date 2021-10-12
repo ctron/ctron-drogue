@@ -1,0 +1,52 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: grafana-datasources
+data:
+  iot.yaml: |
+    apiVersion: 1
+
+    datasources:
+      - name: TimescaleDB
+        type: postgres
+        access: proxy
+        database: $TIMESCALE_DATABASE
+        url: timescaledb:5432
+        user: $TIMESCALE_USERNAME
+        secureJsonData:
+          password: $TIMESCALE_PASSWORD
+        jsonData:
+          sslmode: "disable"
+          timescaledb: true
+          postgresVersion: 1200
+        editable: false
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: grafana-dashboard-providers
+data:
+  local.yaml: |
+    apiVersion: 1
+
+    providers:
+      - name: configmap
+        type: file
+        disableDeletion: false
+        editable: true
+        updateIntervalSeconds: 10
+        options:
+          path: /var/lib/grafana/dashboards
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: grafana-dashboards
+  labels:
+    grafana: dashboards
+data:
+  {{ range $path, $_ :=  .Files.Glob  "dashboards/*.json" }}
+  {{ base $path }}: |
+  {{- $.Files.Get $path | nindent 4 }}
+  {{ end }}

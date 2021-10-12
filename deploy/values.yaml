@@ -1,0 +1,24 @@
+timescale:
+  image: docker.io/timescale/timescaledb-postgis:latest-pg12
+  name: timescale
+
+  adminUser: admin
+  adminPassword: admin123456
+
+  readUser: reader
+  readPassword: reader123456
+
+grafana:
+  adminPassword: admin123456
+  image: docker.io/grafana/grafana:8.1.1
+  podSecurityContext:
+    enabled: false
+  ingress: {}
+
+keycloak:
+  version: 15.0.1
+  ingress: {}
+  adminPassword: admin123456
+  postInstall:
+    enabled: true
+    image: quay.io/keycloak/keycloak:15.0.1

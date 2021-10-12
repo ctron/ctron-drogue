@@ -1,0 +1,188 @@
+{{- $ref := dict "root" . "name" "grafana" "component" "dashboard" -}}
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: grafana
+  labels:
+    {{- include "ctron-drogue.labels" $ref | nindent 4 }}
+  annotations:
+    app.openshift.io/connects-to: '[{"apiVersion":"apps/v1","kind":"StatefulSet","name":"timescaledb"}]'
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "ctron-drogue.selectorLabels" $ref | nindent 6 }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        {{- include "ctron-drogue.labels" $ref | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/grafana/configmap.yaml") . | sha256sum }}
+        checksum/config-timescale: {{ include (print $.Template.BasePath "/timescaledb/configmap.yaml") . | sha256sum }}
+        checksum/secret-timescale: {{ include (print $.Template.BasePath "/timescaledb/secret.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: grafana
+      initContainers:
+        - name: wait-for-client-secret
+          image: registry.access.redhat.com/ubi8-minimal
+          imagePullPolicy: IfNotPresent
+          command:
+            - bash
+            - -c
+            - |
+              echo "Waiting for client secret to be populated (/etc/client-secret/CLIENT_SECRET)..."
+              while test -z "$(cat /etc/client-secret/CLIENT_SECRET)"; do
+                sleep 1
+              done
+          volumeMounts:
+            - mountPath: /etc/client-secret
+              name: client-secret
+              readOnly: true
+        - name: collect-dashboards
+          image: ghcr.io/ctron/kubectl:1.19
+          imagePullPolicy: IfNotPresent
+          command:
+            - bash
+            - -c
+            - |
+              cd /var/lib/grafana/dashboards
+              readarray -d $'\0' -t a < <(kubectl get cm -l grafana=dashboards -o json | jq -cj '.items[] | . as $cm | .data | to_entries[] | [ ($cm.metadata.name + "-" + .key), .value ][]+"\u0000"') ; count=0; while [ $count -lt ${#a[@]} ]; do echo "${a[$((count + 1))]}" > ${a[$count]}; count=$(( $count + 2)); done
+          volumeMounts:
+            - mountPath: /var/lib/grafana/dashboards
+              name: grafana-dashboards
+      containers:
+        - name: grafana
+          image: {{ .Values.grafana.image }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: grafana
+                  key: admin.password
+            - name: GF_ANALYTICS_REPORTING_ENABLED
+              value: "false"
+
+            - name: GF_LOG_LEVEL
+              value: "debug"
+
+            {{- if .Values.grafana.keycloak.enabled }}
+            - name: GF_AUTH_GENERIC_OAUTH_ENABLED
+              value: "true"
+            - name: GF_AUTH_GENERIC_OAUTH_NAME
+              value: {{ .Values.grafana.keycloak.displayName | default "Drogue IoT cloud" | quote }}
+            - name: GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP
+              value: "true"
+            - name: GF_AUTH_GENERIC_OAUTH_TEAM_IDS
+              value: ""
+            - name: GF_AUTH_GENERIC_OAUTH_ALLOWED_ORGANIZATIONS
+              value: ""
+
+            {{- if .Values.grafana.keycloak.client.id }}
+
+            - name: GF_AUTH_GENERIC_OAUTH_CLIENT_ID
+              value: {{ .Values.grafana.keycloak.client.id | quote }}
+            {{- with .Values.grafana.keycloak.client.secret }}
+            - name: GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET
+              value: {{ . | quote }}
+            {{- end }}
+
+            {{- else }}
+
+            - name: GF_AUTH_GENERIC_OAUTH_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.grafana.keycloak.client.kubernetesSecret | quote }}
+                  key: CLIENT_ID
+            - name: GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.grafana.keycloak.client.kubernetesSecret | quote }}
+                  key: CLIENT_SECRET
+
+            {{- end }}
+
+            - name: GF_AUTH_GENERIC_OAUTH_SCOPES
+              value: {{ .Values.grafana.keycloak.scopes | default "openid profile email" | quote }}
+
+            - name: SSO_URL
+              value: {{ include "drogue-cloud-common.ingress.url" (dict "root" . "prefix" "sso" "ingress" .Values.grafana.keycloak.ingress ) }}
+            - name: GF_AUTH_GENERIC_OAUTH_AUTH_URL
+              value: $(SSO_URL)/auth/realms/{{ .Values.grafana.keycloak.realm }}/protocol/openid-connect/auth
+            - name: GF_AUTH_GENERIC_OAUTH_TOKEN_URL
+              value: $(SSO_URL)/auth/realms/{{ .Values.grafana.keycloak.realm }}/protocol/openid-connect/token
+            - name: GF_AUTH_GENERIC_OAUTH_API_URL
+              value: $(SSO_URL)/auth/realms/{{ .Values.grafana.keycloak.realm }}/protocol/openid-connect/userinfo
+            - name: GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH
+              value: "contains(roles[*], 'grafana-admin') && 'Admin' || contains(roles[*], 'grafana-editor') && 'Editor' || 'Viewer'"
+            {{- end }}
+
+            - name: GF_SERVER_ROOT_URL
+              value: {{ include "drogue-cloud-common.ingress.url" (dict "root" . "prefix" "grafana" "ingress" .Values.grafana.ingress ) }}
+
+            - name: GF_INSTALL_PLUGINS
+              value: grafana-worldmap-panel
+
+            - name: TIMESCALE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: timescaledb-secret
+                  key: read.username
+            - name: TIMESCALE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: timescaledb-secret
+                  key: read.password
+            - name: TIMESCALE_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: timescaledb-config
+                  key: databaseName
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            timeoutSeconds: 1
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            timeoutSeconds: 1
+          ports:
+            - containerPort: 3000
+              name: web
+              protocol: TCP
+          resources:
+            limits:
+              memory: 1Gi
+          volumeMounts:
+            - mountPath: /var/lib/grafana
+              name: grafana-storage
+            - mountPath: /etc/grafana/provisioning/datasources
+              name: grafana-datasources
+            - mountPath: /etc/grafana/provisioning/dashboards
+              name: grafana-dashboard-providers
+            - mountPath: /var/lib/grafana/dashboards
+              name: grafana-dashboards
+      {{- if .Values.grafana.podSecurityContext.enabled }}
+      securityContext: {{- omit .Values.grafana.podSecurityContext "enabled" | toYaml | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: grafana-storage
+          persistentVolumeClaim:
+            claimName: grafana-pvc
+        - name: grafana-datasources
+          configMap:
+            name: grafana-datasources
+        - name: grafana-dashboard-providers
+          configMap:
+            name: grafana-dashboard-providers
+        - name: grafana-dashboards
+          emptyDir: {}
+        - name: client-secret
+          secret:
+            secretName: {{ . | quote }}

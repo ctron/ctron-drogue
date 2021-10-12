@@ -1,0 +1,26 @@
+apiVersion: keycloak.org/v1alpha1
+kind: KeycloakClient
+metadata:
+  name: client-grafana
+  labels:
+    app.kubernetes.io/name: client-grafana
+    app.kubernetes.io/part-of: playground
+spec:
+  realmSelector:
+    matchLabels:
+      {{- include "ctron-drogue.selectorLabels" (dict "root" . "name" "playground" "component" "sso") | nindent 6 }}
+  roles:
+    - name: "grafana-admin"
+    - name: "grafana-editor"
+  client:
+    clientId: grafana
+    clientAuthenticatorType: client-secret
+    enabled: true
+    rootUrl: ""
+    publicClient: false
+    implicitFlowEnabled: false
+    standardFlowEnabled: true
+    serviceAccountsEnabled: false
+    fullScopeAllowed: false
+    redirectUris:
+      - {{ include "ctron-drogue.ingress.url" (dict "root" . "prefix" "grafana" "ingress" .Values.grafana.ingress ) }}/login/generic_oauth

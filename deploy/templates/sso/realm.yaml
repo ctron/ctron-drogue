@@ -1,0 +1,24 @@
+{{- $ref := dict "root" . "name" "playground" "component" "sso" -}}
+apiVersion: keycloak.org/v1alpha1
+kind: KeycloakRealm
+metadata:
+  name: playground
+  labels:
+    {{- include "ctron-drogue.labels" $ref | nindent 4 }}
+spec:
+  instanceSelector:
+    matchLabels:
+      {{- include "ctron-drogue.selectorLabels" (dict "root" . "name" "keycloak" "component" "sso") | nindent 6 }}
+
+  realm:
+    realm: "playground"
+    enabled: true
+    displayName: "Drogue IoT Playground"
+    registrationAllowed: false
+    resetPasswordAllowed: true
+    loginWithEmailAllowed: false
+    roles:
+      realm:
+      - name: "admin"
+    identityProviders:
+      {{- .Values.keycloak.identityProviders | toYaml | nindent 6 }}

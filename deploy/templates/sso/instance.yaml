@@ -1,0 +1,14 @@
+apiVersion: keycloak.org/v1alpha1
+kind: Keycloak
+metadata:
+  name: sso
+  labels:
+    {{- include "ctron-drogue.labels" (dict "root" . "name" "keycloak" "component" "sso") | nindent 4 }}
+spec:
+  instances: 1
+
+  externalAccess:
+    # External Access must be disabled. It is broken for OpenShift for KeyCloak 12+ and also causes issues
+    # with the nginx ingress controller. The controller sets the ingressClass to "nginx" and the keycloak
+    # operator removes this again. Resulting in constant updates and failures of the Ingress resource.
+    enabled: false
