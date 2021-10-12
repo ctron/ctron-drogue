@@ -1,5 +1,6 @@
 global:
   cluster: openshift
+  domain: .apps.wonderful.iot-playground.org
 
 defaults:
   ingress: {}
