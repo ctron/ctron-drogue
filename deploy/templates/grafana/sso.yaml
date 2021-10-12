@@ -16,11 +16,9 @@ spec:
     clientId: grafana
     clientAuthenticatorType: client-secret
     enabled: true
-    rootUrl: ""
     publicClient: false
     implicitFlowEnabled: false
     standardFlowEnabled: true
-    serviceAccountsEnabled: false
     fullScopeAllowed: false
     redirectUris:
       - {{ include "ctron-drogue.ingress.url" (dict "root" . "prefix" "grafana" "ingress" .Values.grafana.ingress ) }}/login/generic_oauth

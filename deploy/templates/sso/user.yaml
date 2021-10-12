@@ -14,11 +14,9 @@ spec:
     lastName: "Admin"
     email: {{ .Values.keycloak.adminEmail | default "user@example.com" }}
     enabled: true
-    emailVerified: false
     credentials:
       - type: password
         value: {{ .Values.keycloak.adminPassword }}
-        temporary: false
     realmRoles:
       - "offline_access"
     clientRoles:
