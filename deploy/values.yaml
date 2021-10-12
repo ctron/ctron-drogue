@@ -1,3 +1,9 @@
+global:
+  cluster: openshift
+
+defaults:
+  ingress: {}
+
 timescale:
   image: docker.io/timescale/timescaledb-postgis:latest-pg12
   name: timescale
@@ -16,6 +22,7 @@ grafana:
   ingress: {}
 
 keycloak:
+  realm: playground
   version: 15.0.1
   ingress: {}
   adminPassword: admin123456

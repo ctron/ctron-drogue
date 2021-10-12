@@ -8,7 +8,7 @@ metadata:
 spec:
   realmSelector:
     matchLabels:
-      {{- include "ctron-drogue.selectorLabels" (dict "root" . "name" "playground" "component" "sso") | nindent 6 }}
+      {{- include "ctron-drogue.selectorLabels" (dict "root" . "name" .Values.keycloak.realm "component" "sso") | nindent 6 }}
   roles:
     - name: "grafana-admin"
     - name: "grafana-editor"

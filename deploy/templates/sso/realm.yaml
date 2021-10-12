@@ -1,17 +1,17 @@
-{{- $ref := dict "root" . "name" "playground" "component" "sso" -}}
+{{- $ref := dict "root" . "name" .Values.keycloak.realm "component" "sso" -}}
 apiVersion: keycloak.org/v1alpha1
 kind: KeycloakRealm
 metadata:
-  name: playground
+  name: {{ .Values.keycloak.realm }}
   labels:
     {{- include "ctron-drogue.labels" $ref | nindent 4 }}
 spec:
   instanceSelector:
     matchLabels:
-      {{- include "ctron-drogue.selectorLabels" (dict "root" . "name" "keycloak" "component" "sso") | nindent 6 }}
+      {{- include "ctron-drogue.selectorLabels" (dict "root" . "name" .Values.keycloak.realm "component" "sso") | nindent 6 }}
 
   realm:
-    realm: "playground"
+    realm: {{ .Values.keycloak.realm | quote }}
     enabled: true
     displayName: "Drogue IoT Playground"
     registrationAllowed: false

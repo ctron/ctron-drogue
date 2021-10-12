@@ -7,7 +7,7 @@ metadata:
 spec:
   realmSelector:
     matchLabels:
-      {{- include "ctron-drogue.selectorLabels" (dict "root" . "name" "drogue" "component" "sso") | nindent 6 }}
+      {{- include "ctron-drogue.selectorLabels" (dict "root" . "name" .Values.keycloak.realm "component" "sso") | nindent 6 }}
   user:
     username: "admin"
     firstName: "System"
