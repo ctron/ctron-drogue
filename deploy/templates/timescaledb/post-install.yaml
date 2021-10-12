@@ -39,11 +39,11 @@ spec:
             - timescaledb
             - -c
             - |
-              DO $$
+              DO $$$$
               BEGIN
               CREATE USER {{ .Values.timescale.readUser }};
               EXCEPTION WHEN duplicate_object THEN RAISE NOTICE '%, skipping', SQLERRM USING ERRCODE = SQLSTATE;
               END
               ALTER USER {{ .Values.timescale.readUser }} WITH PASSWORD '{{ .Values.timescale.readPassword }}'
               GRANT SELECT ON ALL TABLES IN SCHEMA public TO {{ .Values.timescale.readUser }};
-              $$;
+              $$$$;
