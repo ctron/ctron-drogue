@@ -26,6 +26,7 @@ keycloak:
   version: 15.0.1
   ingress: {}
   adminPassword: admin123456
+  identityProviders: []
   postInstall:
     enabled: true
     image: quay.io/keycloak/keycloak:15.0.1
