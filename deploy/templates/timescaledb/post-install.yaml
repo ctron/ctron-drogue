@@ -34,7 +34,7 @@ spec:
                   name: timescaledb-config
                   key: databaseName
           command:
-            - pql
+            - psql
             - -h
             - timescaledb
             - -c
