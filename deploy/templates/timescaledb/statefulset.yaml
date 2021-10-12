@@ -33,6 +33,10 @@ spec:
             - mountPath: /var/lib/storage
               name: storage
               subPath: pgdata
+          ports:
+            - containerPort: 5432
+              name: postgres
+              protocol: TCP
   volumeClaimTemplates:
     - metadata:
         name: storage
