@@ -1,12 +1,13 @@
+{{- $ref := dict "root" . "name" "timescaledb" "component" "database" -}}
 kind: Service
 apiVersion: v1
 metadata:
   name: timescaledb
   labels:
-    app: timescaledb
+    {{ include "ctron-drogue.labels" $ref | nindent 4 }}
 spec:
   selector:
-    app: timescaledb
+    {{ include "ctron-drogue.selectorLabels" $ref | nindent 4 }}
 
   type: ClusterIP
 

@@ -1,20 +1,20 @@
+{{- $ref := dict "root" . "name" "timescaledb" "component" "database" -}}
 kind: StatefulSet
 apiVersion: apps/v1
 metadata:
   name: timescaledb
   labels:
-    app.kubernetes.io/name: timescaledb
-    app.kubernetes.io/part-of: playground
+    {{ include "ctron-drogue.labels" $ref | nindent 4 }}
 spec:
   replicas: 1
   serviceName: timescaledb
   selector:
     matchLabels:
-      app.kubernetes.io/name: timescaledb
+      {{ include "ctron-drogue.selectorLabels" $ref | nindent 6 }}
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: timescaledb
+        {{ include "ctron-drogue.labels" $ref | nindent 8 }}
     spec:
       containers:
         - name: timescaledb
