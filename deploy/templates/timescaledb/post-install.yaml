@@ -1,0 +1,49 @@
+kind: Job
+apiVersion: batch/v1
+metadata:
+  name: post-install-timescaledb
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+
+spec:
+  backoffLimit: 1000
+  completions: 1
+  parallelism: 1
+
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: docker.io/library/postgres:13
+          env:
+            - name:  PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: timescaledb-secret
+                  key: admin.username
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: timescaledb-secret
+                  key: admin.password
+            - name:  PGDATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: timescaledb-config
+                  key: databaseName
+          command:
+            - pql
+            - -h
+            - timescaledb
+            - -c
+            - |
+              DO $$
+              BEGIN
+              CREATE USER {{ .Values.timescale.readUser }};
+              EXCEPTION WHEN duplicate_object THEN RAISE NOTICE '%, skipping', SQLERRM USING ERRCODE = SQLSTATE;
+              END
+              ALTER USER {{ .Values.timescale.readUser }} WITH PASSWORD '{{ .Values.timescale.readPassword }}'
+              GRANT SELECT ON ALL TABLES IN SCHEMA public TO {{ .Values.timescale.readUser }};
+              $$;
