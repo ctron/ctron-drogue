@@ -1,0 +1,7 @@
+apiVersion: v2
+name: ctron-drogue
+description: ctron's Drogue IoT playground
+
+type: application
+
+version: 0.1.0
