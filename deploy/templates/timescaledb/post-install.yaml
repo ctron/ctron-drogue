@@ -1,11 +1,13 @@
+{{- $ref := dict "root" . "name" "post-install-timescaledb" "component" "database" -}}
 kind: Job
 apiVersion: batch/v1
 metadata:
   name: post-install-timescaledb
+  labels:
+    {{ include "ctron-drogue.labels" $ref | nindent 4 }}
   annotations:
     helm.sh/hook: post-install,post-upgrade
     helm.sh/hook-delete-policy: before-hook-creation
-
 spec:
   backoffLimit: 1000
   completions: 1
