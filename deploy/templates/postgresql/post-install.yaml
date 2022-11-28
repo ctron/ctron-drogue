@@ -9,7 +9,7 @@ metadata:
 data:
   {{ $currentScope := . }}
   {{ range $_, $db := .Values.databases }}
-  {{ $db }}.sql: {{ tpl ( $.Files.Get "scripts/postgres/create.sql" ) (dict "Template" $.Template "root" $currentScope  "db" $db ) | quote }}
+  {{ $db.name }}.sql: {{ tpl ( $.Files.Get "scripts/postgres/create.sql" ) (dict "Template" $.Template "root" $currentScope  "db" $db ) | quote }}
   {{ end }}
 ---
 kind: Job
