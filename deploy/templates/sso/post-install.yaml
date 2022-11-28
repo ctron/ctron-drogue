@@ -41,7 +41,7 @@ spec:
                   key: password
 
             - name: KEYCLOAK_URL
-              value: {{ printf "http://sso-tls.%s.svc.cluster.local:8443" .Release.Namespace | quote }}
+              value: {{ printf "https://sso-service.%s.svc.cluster.local:8443" .Release.Namespace | quote }}
 
             - name: KCADM_PATH
               value: {{ .Values.keycloak.postInstall.kcAdmPath | default "/opt/keycloak/bin/kcadm.sh" }}
