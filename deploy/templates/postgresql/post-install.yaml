@@ -9,7 +9,7 @@ metadata:
 data:
   {{ range $path, $_ :=  .Files.Glob  "scripts/postgres/*.sql" }}
   {{ base $path }}: |
-    {{- include $.Files.Get $path . | nindent 4 }}
+    {{- include $path . | nindent 4 }}
   {{ end }}
 ---
 kind: Job
