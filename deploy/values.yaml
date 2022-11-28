@@ -3,7 +3,7 @@ global:
   domain: -ctron-drogue.apps.wonderful.iot-playground.org
 
 defaults:
-  ingress: {}
+  ingress: { }
 
 timescale:
   image: docker.io/timescale/timescaledb-postgis:latest-pg12
@@ -23,23 +23,41 @@ postgresql:
     username: drogue
     password: drogue1234
 
+  primary:
+    podSecurityContext:
+      fsGroup: null
+      seccompProfile:
+        type: RuntimeDefault
+    containerSecurityContext:
+      runAsUser: null
+      allowPrivilegeEscalation: false
+      runAsNonRoot: true
+      seccompProfile:
+        type: RuntimeDefault
+      capabilities:
+        drop: [ 'ALL' ]
+    volumePermissions:
+      enabled: false
+    shmVolume:
+      enabled: false
+
 grafana:
   adminPassword: admin123456
   image: docker.io/grafana/grafana:9.2.6
   podSecurityContext:
     enabled: false
-  ingress: {}
+  ingress: { }
 
 keycloak:
   realm: playground
   version: 20.0.1
-  ingress: {}
+  ingress: { }
   adminPassword: admin123456
   postgres:
     database: keycloak
     username: keycloak
     password: keycloak1234
-  identityProviders: []
+  identityProviders: [ ]
   postInstall:
     enabled: true
     image: quay.io/keycloak/keycloak:20.0.1
