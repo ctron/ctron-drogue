@@ -7,9 +7,9 @@ metadata:
   labels:
       {{- include "ctron-drogue.labels" $ref | nindent 4 }}
 data:
+  {{ $currentScope := . }}
   {{ range $path, $_ :=  .Files.Glob  "scripts/postgres/*.sql" }}
-  {{ base $path }}: |
-    {{- include $path . | nindent 4 }}
+  {{ base $path }}: {{ tpl ( $.Files.Get $path ) $currentScope | b64enc | quote }}
   {{ end }}
 ---
 kind: Job
