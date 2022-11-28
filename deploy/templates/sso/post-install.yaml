@@ -30,7 +30,7 @@ spec:
 
       containers:
         - name: post-install
-          image: {{ .Values.keycloak.postInstall.image | default .Values.global.drogueCloud.keycloak.postInstall.image }}
+          image: {{ .Values.keycloak.postInstall.image | quote }}
           imagePullPolicy: IfNotPresent
 
           env:
