@@ -5,3 +5,8 @@ description: ctron's Drogue IoT playground
 type: application
 
 version: 0.1.0
+
+dependencies:
+  - name: postgresql
+    version: 12.1.2
+    repository: https://charts.bitnami.com/bitnami

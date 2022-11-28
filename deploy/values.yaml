@@ -15,6 +15,10 @@ timescale:
   readUser: reader
   readPassword: reader123456
 
+postgres:
+  auth:
+    postgresPassword: admin123456
+
 grafana:
   adminPassword: admin123456
   image: docker.io/grafana/grafana:9.2.6
