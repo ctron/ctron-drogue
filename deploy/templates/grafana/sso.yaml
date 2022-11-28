@@ -63,10 +63,19 @@ spec:
     spec:
       restartPolicy: OnFailure
 
+      volumes:
+        - name: init-data
+          configMap:
+            name: post-install-keycloak-client-grafana
+
       containers:
         - name: post-install
           image: {{ .Values.keycloak.postInstall.image | quote }}
           imagePullPolicy: IfNotPresent
+
+          volumeMounts:
+            - mountPath: /etc/init-data
+              name: init-data
 
           env:
             - name: ADMIN_USERNAME
