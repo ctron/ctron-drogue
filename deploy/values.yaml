@@ -18,6 +18,9 @@ timescale:
 postgres:
   auth:
     postgresPassword: admin123456
+    database: drogue
+    username: drogue
+    password: drogue1234
 
 grafana:
   adminPassword: admin123456
