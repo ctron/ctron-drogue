@@ -129,6 +129,8 @@ spec:
               else
                 kcadm create clients -r "${REALM}" -f /etc/init-data/client.json "${CLIENT_OPTS[@]}"
               fi
+
+{{- end -}}
 ---
 kind: Secret
 apiVersion: v1
@@ -137,5 +139,3 @@ metadata:
 data:
   CLIENT_ID: {{ "grafana" | b64enc }}
   CLIENT_SECRET: {{ .Values.keycloak.clients.grafana.clientSecret | b64enc }}
-
-{{- end -}}
