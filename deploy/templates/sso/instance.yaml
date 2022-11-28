@@ -1,4 +1,4 @@
-apiVersion: keycloak.org/v1alpha1
+apiVersion: k8s.keycloak.org/v2alpha1
 kind: Keycloak
 metadata:
   name: sso
@@ -7,8 +7,39 @@ metadata:
 spec:
   instances: 1
 
-  externalAccess:
-    # External Access must be disabled. It is broken for OpenShift for KeyCloak 12+ and also causes issues
-    # with the nginx ingress controller. The controller sets the ingressClass to "nginx" and the keycloak
-    # operator removes this again. Resulting in constant updates and failures of the Ingress resource.
+  additionalOptions:
+    - name: db
+      value: postgres
+    - name: db-url-database
+      secret:
+        name: keycloak-db-secret
+        key: database
+    - name: db-url-host
+      secret:
+        name: keycloak-db-secret
+        key: host
+    - name: db-url-port
+      secret:
+        name: keycloak-db-secret
+        key: port
+    - name: db-username
+      secret:
+        name: keycloak-db-secret
+        key: username
+    - name: db-password
+      secret:
+        name: keycloak-db-secret
+        key: password
+
+    - name: proxy
+      value: reencrypt
+
+  hostname:
+    hostname: {{ include "drogue-cloud-core.sso.host" . }}
+
+  ingress:
     enabled: false
+
+  http:
+
+    tlsSecret: sso-tls

@@ -1,5 +1,5 @@
 {{- $ref := dict "root" . "name" "post-install-keycloak" "component" "sso" -}}
-{{- if .Values.keycloak.postInstall.enabled -}}
+{{- if false -}}
 kind: Job
 apiVersion: batch/v1
 metadata:
