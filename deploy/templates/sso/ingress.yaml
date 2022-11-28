@@ -2,7 +2,7 @@
 kind: Ingress
 apiVersion: networking.k8s.io/v1
 metadata:
-  name: keycloak
+  name: sso
   annotations:
     {{- include "ctron-drogue.ingress.annotations" (dict "root" . "ingress" .Values.keycloak.ingress "termination" "reencrypt") | nindent 4 }}
   labels:
