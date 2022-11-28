@@ -35,7 +35,7 @@ spec:
       value: reencrypt
 
   hostname:
-    hostname: sso-ctron-drogue.apps.wonderful.iot-playground.org
+    hostname: {{ include "ctron-drogue.ingress.host" (dict "root" . "prefix" "sso" "ingress" .Values.keycloak.ingress ) }}
 
   ingress:
     enabled: false
