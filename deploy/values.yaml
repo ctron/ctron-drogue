@@ -34,6 +34,10 @@ keycloak:
   version: 20.0.1
   ingress: {}
   adminPassword: admin123456
+  postgres:
+    database: keycloak
+    username: keycloak
+    password: keycloak1234
   identityProviders: []
   postInstall:
     enabled: true

@@ -7,8 +7,8 @@ metadata:
 
 data:
 
-  database: {{ .Values.postgresql.auth.database | b64enc | quote }}
+  database: keycloak
   host: {{ printf "postgres.%s.svc.cluster.local" .Release.Namespace | b64enc | quote }}
-  port: {{ .Values.postgresql.port | default "5432" | b64enc | quote }}
-  username: {{ .Values.postgresql.auth.username | b64enc | quote }}
-  password: {{ .Values.postgresql.auth.password | b64enc | quote }}
+  port: {{ .Values.keycloak.postgres.port | default "5432" | b64enc | quote }}
+  username: {{ .Values.keycloak.postgres.username | b64enc | quote }}
+  password: {{ .Values.keycloak.postgres.password | b64enc | quote }}

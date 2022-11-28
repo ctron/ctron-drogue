@@ -1,0 +1,63 @@
+{{- $ref := dict "root" . "name" "post-install-postgresql" "component" "infrastructure" -}}
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: post-install-postgresql
+  labels:
+      {{- include "ctron-drogue.labels" $ref | nindent 4 }}
+data:
+  {{ range $path, $_ :=  .Files.Glob  "scripts/postgres/*.sql" }}
+  {{ base $path }}: |
+  {{- $.Files.Get $path | nindent 4 }}
+  {{ end }}
+---
+kind: Job
+apiVersion: batch/v1
+metadata:
+  name: post-install-postgresql
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+  labels:
+    {{- include "ctron-drogue.labels" $ref | nindent 4 }}
+spec:
+  backoffLimit: 1000
+  completions: 1
+  parallelism: 1
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      volumes:
+        - name: init-data
+          configMap:
+            name: post-install-postgresql
+      containers:
+        - name: post-install
+          image: "{{ .Values.postgresql.image.registry }}/{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
+          imagePullPolicy: IfNotPresent
+
+          volumeMounts:
+            - mountPath: /etc/init-data
+              name: init-data
+
+          env:
+            - name: PGDATABASE
+              value: {{ .Values.postgresql.auth.database }}
+            - name: PGUSER
+              value: postgres
+            - name: PGPASSWORD
+              value: {{ .Values.postgresql.auth.postgresPassword | quote }}
+            - name: PGHOST
+              value: postgres
+
+          command:
+            - bash
+            - -exc
+            - |
+              for i in $(find /etc/init-data/*.sql); do
+                psql < $i
+              done
