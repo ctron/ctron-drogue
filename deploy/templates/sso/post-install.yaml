@@ -23,11 +23,6 @@ spec:
     spec:
       restartPolicy: OnFailure
 
-      volumes:
-        - name: init-data
-          configMap:
-            name: post-install-keycloak-config
-
       containers:
         - name: post-install
           image: {{ .Values.keycloak.postInstall.image | quote }}
@@ -46,7 +41,7 @@ spec:
                   key: password
 
             - name: KEYCLOAK_URL
-              value: {{ "sso" | quote }}
+              value: {{ printf "sso-service.%s.svc.cluster.local" .Release.Namespace | quote }}
 
             - name: KCADM_PATH
               value: {{ .Values.keycloak.postInstall.kcAdmPath | default "/opt/keycloak/bin/kcadm.sh" }}
