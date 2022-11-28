@@ -41,5 +41,4 @@ spec:
     enabled: false
 
   http:
-
     tlsSecret: sso-tls
