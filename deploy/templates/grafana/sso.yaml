@@ -130,7 +130,8 @@ spec:
                 kcadm create clients -r "${REALM}" -f /etc/init-data/client.json "${CLIENT_OPTS[@]}"
               fi
 
-{{- end -}}
+{{- end}}
+
 ---
 kind: Secret
 apiVersion: v1
