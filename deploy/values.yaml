@@ -53,3 +53,7 @@ keycloak:
   postInstall:
     enabled: true
     image: quay.io/keycloak/keycloak:20.0.1
+
+    user:
+      name: admin
+      password: admin12345

@@ -1,16 +1,19 @@
 {{- $ref := dict "root" . "name" "post-install-keycloak" "component" "sso" -}}
-{{- if false -}}
+
+{{- if .Values.keycloak.postInstall.enabled -}}
 kind: Job
 apiVersion: batch/v1
 metadata:
   name: post-install-keycloak
   annotations:
-    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "0"
+    helm.sh/hook-weight: "5"
     helm.sh/hook: post-install,post-upgrade
     helm.sh/hook-delete-policy: before-hook-creation
   labels:
-    {{- include "ctron-drogue.labels" $ref | nindent 4 }}
+      {{- include "ctron-drogue.labels" $ref | nindent 4 }}
 spec:
   backoffLimit: 1000
   completions: 1
@@ -19,29 +22,89 @@ spec:
   template:
     spec:
       restartPolicy: OnFailure
+
+      volumes:
+        - name: init-data
+          configMap:
+            name: post-install-keycloak-config
+
       containers:
         - name: post-install
-          image: {{ .Values.keycloak.postInstall.image }}
+          image: {{ .Values.keycloak.postInstall.image | default .Values.global.drogueCloud.keycloak.postInstall.image }}
           imagePullPolicy: IfNotPresent
 
           env:
             - name: ADMIN_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: credential-sso
-                  key: ADMIN_USERNAME
+                  name: sso-initial-admin
+                  key: username
             - name: ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: credential-sso
-                  key: ADMIN_PASSWORD
+                  name: sso-initial-admin
+                  key: password
+
             - name: KEYCLOAK_URL
-              value: {{ include "ctron-drogue.ingress.url" (dict "root" . "prefix" "sso" "ingress" .Values.keycloak.ingress ) }}
+              value: {{ "sso" | quote }}
+
+            - name: KCADM_PATH
+              value: {{ .Values.keycloak.postInstall.kcAdmPath | default "/opt/keycloak/bin/kcadm.sh" }}
+
+            - name: CUSTOM_TRUSTSTORE
+              value: "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+
+            - name: REALM
+              value: {{ .Values.keycloak.realm }}
 
           command:
             - bash
             - -exc
             - |
+
+              kcadm() { local cmd="$1" ; shift ; "$KCADM_PATH" "$cmd" --config /tmp/kcadm.config "$@" ; }
+
+              # set up trust store
+              if [[ -n "${CUSTOM_TRUSTSTORE}" ]]; then
+                keytool -importcert -noprompt -trustcacerts -file "${CUSTOM_TRUSTSTORE}" -keystore /tmp/truststore.jks -storepass temp1234 -storetype JKS
+                kcadm config truststore /tmp/truststore.jks --trustpass temp1234
+              fi
+
               # log in to keycloak
-              /opt/jboss/keycloak/bin/kcadm.sh config credentials config --config /tmp/kcadm.config --server "$KEYCLOAK_URL/auth" --realm master --user "$ADMIN_USERNAME" --password "$ADMIN_PASSWORD"
+              kcadm config credentials config --server "$KEYCLOAK_URL" --realm master --user "$ADMIN_USERNAME" --password "$ADMIN_PASSWORD"
+
+              # create realm
+              REALM_OPTS=()
+              REALM_OPTS+=(-s enabled=true)
+              REALM_OPTS+=(-s "displayName=Drogue IoT Examples")
+              REALM_OPTS+=(-s registrationAllowed=true)
+              REALM_OPTS+=(-s resetPasswordAllowed=true)
+              REALM_OPTS+=(-s loginWithEmailAllowed=false)
+              REALM_OPTS+=(-s identityProviders='{{ mustToJson .Values.keycloak.identityProviders }}')
+              if kcadm get "realms/${REALM}" &> /dev/null ; then
+                # exists -> update
+                kcadm update "realms/${REALM}" "${REALM_OPTS[@]}"
+              else
+                # need to create
+                kcadm create realms -s "realm=${REALM}" "${REALM_OPTS[@]}"
+              fi
+
+              # create realm roles
+              kcadm create roles -r "${REALM}" -s name=admin || true
+
+              # create user
+              ID=$(kcadm get users -r "${REALM}" --query "username={{ .Values.keycloak.postInstall.user.name }}" --fields id --format csv --noquotes)
+              if [[ -n "$ID" ]]; then
+                kcadm update "users/$ID" -r "${REALM}" -s enabled=true
+              else
+                kcadm create users -r "${REALM}" -s "username={{ .Values.keycloak.postInstall.user.name }}" -s enabled=true
+              fi
+
+              # set role
+              kcadm add-roles -r "${REALM}" --uusername "{{ .Values.keycloak.postInstall.user.name }}" --rolename admin
+
+              # set password
+              ID=$(kcadm get users -r "${REALM}" --query "username={{ .Values.keycloak.postInstall.user.name }}" --fields id --format csv --noquotes)
+              kcadm update "users/${ID}/reset-password" -r "${REALM}" -s type=password -s "value={{ .Values.keycloak.postInstall.user.password }}" -s temporary=false -n
+
 {{- end -}}
