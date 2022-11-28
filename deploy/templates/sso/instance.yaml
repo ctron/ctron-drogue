@@ -35,7 +35,7 @@ spec:
       value: reencrypt
 
   hostname:
-    hostname: {{ include "drogue-cloud-core.sso.host" . }}
+    hostname: sso-ctron-drogue.apps.wonderful.iot-playground.org
 
   ingress:
     enabled: false
