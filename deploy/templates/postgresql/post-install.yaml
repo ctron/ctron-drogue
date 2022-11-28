@@ -9,7 +9,7 @@ metadata:
 data:
   {{ $currentScope := . }}
   {{ range $path, $_ :=  .Files.Glob  "scripts/postgres/*.sql" }}
-  {{ base $path }}: {{ tpl ( $.Files.Get $path ) $currentScope | b64enc | quote }}
+  {{ base $path }}: {{ tpl ( $.Files.Get $path ) $currentScope | quote }}
   {{ end }}
 ---
 kind: Job
