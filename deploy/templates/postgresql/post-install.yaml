@@ -8,8 +8,8 @@ metadata:
       {{- include "ctron-drogue.labels" $ref | nindent 4 }}
 data:
   {{ $currentScope := . }}
-  {{ range $db, $_ := .Values.databases }}
-  {{ base $db }}.sql: {{ tpl "scripts/postgres/create.sql" (dict "root" $currentScope  "db" $db ) | quote }}
+  {{ range $_, $db := .Values.databases }}
+  {{ $db }}.sql: {{ tpl "scripts/postgres/create.sql" (dict "root" $currentScope  "db" $db ) | quote }}
   {{ end }}
 ---
 kind: Job
