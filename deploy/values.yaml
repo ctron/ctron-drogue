@@ -15,7 +15,7 @@ timescale:
   readUser: reader
   readPassword: reader123456
 
-postgres:
+postgresql:
   fullnameOverride: postgres
   auth:
     postgresPassword: admin123456
