@@ -25,13 +25,9 @@ postgresql:
 
   primary:
     podSecurityContext:
-      seccompProfile:
-        type: RuntimeDefault
+      enabled: false
     containerSecurityContext:
-      allowPrivilegeEscalation: false
-      runAsNonRoot: true
-      capabilities:
-        drop: [ 'ALL' ]
+      enabled: false
     volumePermissions:
       enabled: false
     shmVolume:
