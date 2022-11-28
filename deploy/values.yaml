@@ -25,11 +25,11 @@ postgresql:
 
   primary:
     podSecurityContext:
-      fsGroup: null
+      fsGroup: ~
       seccompProfile:
         type: RuntimeDefault
     containerSecurityContext:
-      runAsUser: null
+      runAsUser: ~
       allowPrivilegeEscalation: false
       runAsNonRoot: true
       seccompProfile:
