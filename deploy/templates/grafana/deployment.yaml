@@ -29,23 +29,8 @@ spec:
     spec:
       serviceAccountName: grafana
       initContainers:
-        - name: wait-for-client-secret
-          image: registry.access.redhat.com/ubi8-minimal
-          imagePullPolicy: IfNotPresent
-          command:
-            - bash
-            - -c
-            - |
-              echo "Waiting for client secret to be populated (/etc/client-secret/CLIENT_SECRET)..."
-              while test -z "$(cat /etc/client-secret/CLIENT_SECRET)"; do
-                sleep 1
-              done
-          volumeMounts:
-            - mountPath: /etc/client-secret
-              name: client-secret
-              readOnly: true
         - name: collect-dashboards
-          image: ghcr.io/ctron/kubectl:1.19
+          image: ghcr.io/ctron/kubectl:1.23
           imagePullPolicy: IfNotPresent
           command:
             - bash
