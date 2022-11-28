@@ -86,6 +86,8 @@ spec:
 
               # create realm roles
               kcadm create roles -r "${REALM}" -s name=admin || true
+              kcadm create roles -r "${REALM}" -s name=grafana-admin || true
+              kcadm create roles -r "${REALM}" -s name=grafana-editor || true
 
               # create user
               ID=$(kcadm get users -r "${REALM}" --query "username={{ .Values.keycloak.postInstall.user.name }}" --fields id --format csv --noquotes)
@@ -97,6 +99,8 @@ spec:
 
               # set role
               kcadm add-roles -r "${REALM}" --uusername "{{ .Values.keycloak.postInstall.user.name }}" --rolename admin
+              kcadm add-roles -r "${REALM}" --uusername "{{ .Values.keycloak.postInstall.user.name }}" --rolename grafana-admin
+              kcadm add-roles -r "${REALM}" --uusername "{{ .Values.keycloak.postInstall.user.name }}" --rolename grafana-editor
 
               # set password
               ID=$(kcadm get users -r "${REALM}" --query "username={{ .Values.keycloak.postInstall.user.name }}" --fields id --format csv --noquotes)

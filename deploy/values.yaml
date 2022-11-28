@@ -50,6 +50,12 @@ keycloak:
     username: keycloak
     password: keycloak1234
   identityProviders: [ ]
+
+  clients:
+    grafana:
+      # the secret of the client, replace with your own value (e.g. from pwgen -s 32)
+      clientSecret: "vUpu7egrPK3Ggd0GHrfAzviTKRZgjG3u"
+
   postInstall:
     enabled: true
     image: quay.io/keycloak/keycloak:20.0.1

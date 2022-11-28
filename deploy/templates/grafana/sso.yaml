@@ -1,26 +1,132 @@
-apiVersion: keycloak.org/v1alpha1
-kind: KeycloakClient
+{{- if .Values.keycloak.postInstall.enabled -}}
+---
+kind: ConfigMap
+apiVersion: v1
 metadata:
-  name: client-grafana
+  name: post-install-keycloak-client-grafana
   labels:
-    app.kubernetes.io/name: client-grafana
+    app.kubernetes.io/part-of: playground
+data:
+  client.json: |
+    {
+      "clientId": "grafana",
+      "clientAuthenticatorType": "client-secret",
+      "enabled": true,
+      "publicClient": false,
+      "implicitFlowEnabled": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": false,
+      "webOrigins": [
+        "*"
+      ],
+      "defaultClientScopes": [
+        "email",
+        "profile",
+        "roles",
+        "web-origins"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "microprofile-jwt",
+        "offline_access",
+        "phone"
+      ],
+      "defaultRoles": [
+      ]
+    }
+---
+{{- $redirect := list
+  (printf "%s/login/generic_oauth" (include "ctron-drogue.ingress.url" (dict "root" . "prefix" "grafana" "ingress" .Values.grafana.ingress )))
+-}}
+
+kind: Job
+apiVersion: batch/v1
+metadata:
+  name: post-install-keycloak
+  annotations:
+    argocd.argoproj.io/hook: Sync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+    argocd.argoproj.io/sync-wave: "5"
+    helm.sh/hook-weight: "10"
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+  labels:
     app.kubernetes.io/part-of: playground
 spec:
-  realmSelector:
-    matchLabels:
-      {{- include "ctron-drogue.selectorLabels" (dict "root" . "name" .Values.keycloak.realm "component" "sso") | nindent 6 }}
-  roles:
-    - name: "grafana-admin"
-    - name: "grafana-editor"
-  client:
-    clientId: grafana
-    clientAuthenticatorType: client-secret
-    enabled: true
-    publicClient: false
-    implicitFlowEnabled: false
-    standardFlowEnabled: true
-    fullScopeAllowed: false
-    redirectUris:
-      - {{ include "ctron-drogue.ingress.url" (dict "root" . "prefix" "grafana" "ingress" .Values.grafana.ingress ) }}/login/generic_oauth
-    rootUrl: ''
-    serviceAccountsEnabled: false
+  backoffLimit: 1000
+  completions: 1
+  parallelism: 1
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: OnFailure
+
+      containers:
+        - name: post-install
+          image: {{ .Values.keycloak.postInstall.image | quote }}
+          imagePullPolicy: IfNotPresent
+
+          env:
+            - name: ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: sso-initial-admin
+                  key: username
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sso-initial-admin
+                  key: password
+
+            - name: KEYCLOAK_URL
+              value: {{ printf "https://sso-tls.%s.svc.cluster.local:8443" .Release.Namespace | quote }}
+
+            - name: KCADM_PATH
+              value: {{ .Values.keycloak.postInstall.kcAdmPath | default "/opt/keycloak/bin/kcadm.sh" }}
+
+            - name: CUSTOM_TRUSTSTORE
+              value: "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+
+            - name: REALM
+              value: {{ .Values.keycloak.realm }}
+
+          command:
+            - bash
+            - -exc
+            - |
+
+              kcadm() { local cmd="$1" ; shift ; "$KCADM_PATH" "$cmd" --config /tmp/kcadm.config "$@" ; }
+
+              # set up trust store
+              if [[ -n "${CUSTOM_TRUSTSTORE}" ]]; then
+                keytool -importcert -noprompt -trustcacerts -file "${CUSTOM_TRUSTSTORE}" -keystore /tmp/truststore.jks -storepass temp1234 -storetype JKS
+                kcadm config truststore /tmp/truststore.jks --trustpass temp1234
+              fi
+
+              # log in to keycloak
+              kcadm config credentials config --server "$KEYCLOAK_URL" --realm master --user "$ADMIN_USERNAME" --password "$ADMIN_PASSWORD"
+
+              # create clients
+              ID=$(kcadm get clients -r "${REALM}" --query "clientId=grafana" --fields id --format csv --noquotes)
+              CLIENT_OPTS=()
+              CLIENT_OPTS+=(-s 'redirectUris={{ $redirect | toJson }}')
+              if [[ -n "$ID" ]]; then
+                # TODO: replace with update once https://github.com/keycloak/keycloak/issues/12484 is fixed
+                # kcadm update "clients/${ID}" -r "${REALM}" -f /etc/init-data/client.json "${CLIENT_OPTS[@]}"
+                kcadm delete "clients/${ID}" -r "${REALM}"
+                kcadm create clients -r "${REALM}" -f /etc/init-data/client.json "${CLIENT_OPTS[@]}"
+              else
+                kcadm create clients -r "${REALM}" -f /etc/init-data/client.json "${CLIENT_OPTS[@]}"
+              fi
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: keycloak-client-secret-grafana
+data:
+  CLIENT_ID: {{ "grafana" | b64enc }}
+  CLIENT_SECRET: {{ .Values.keycloak.clients.grafana.clientSecret | b64enc }}
+
+{{- end -}}
