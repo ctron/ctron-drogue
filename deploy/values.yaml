@@ -63,3 +63,5 @@ keycloak:
     user:
       name: admin
       password: admin12345
+
+databases: []
